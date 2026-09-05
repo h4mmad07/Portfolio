@@ -171,6 +171,24 @@ export const initialPortfolioData: PortfolioSchema = {
       gradient: "from-red-600/30 to-amber-600/20"
     },
     {
+      id: "cmailer-engine",
+      title: "CMailer — Desktop Mailer Engine",
+      year: "2026",
+      category: "Desktop App",
+      description: "A high-performance automated email dispatching and notification engine built with C++ / C#. Features SMTP protocol handling, batch recipient scheduling, template rendering, and robust error logging.",
+      technologies: ["C++", "C#", "SMTP Protocol", "File I/O", "Data Structures", "Desktop Architecture"],
+      githubUrl: "https://github.com/h4mmad07/CMailer",
+      liveUrl: "",
+      featured: true,
+      highlights: [
+        "Multi-threaded SMTP email dispatch and delivery status tracking",
+        "Custom template rendering with dynamic field substitution",
+        "Local relational storage for recipient lists and delivery logs",
+        "Robust exception handling and queue retry architecture"
+      ],
+      gradient: "from-blue-600/30 to-cyan-600/20"
+    },
+    {
       id: "desktop-resume-builder",
       title: "Desktop Resume Builder",
       year: "2026",
