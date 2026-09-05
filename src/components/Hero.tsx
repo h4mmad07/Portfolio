@@ -7,12 +7,17 @@ import {
   Github, 
   Layers, 
   Cpu, 
-  Code2 
+  Code2,
+  FileText
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Hero3DCanvas } from './3d/Hero3DCanvas';
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  onOpenResume: () => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
   const { data } = usePortfolio();
 
   return (
@@ -85,6 +90,14 @@ export const Hero: React.FC = () => {
                 <span>Explore Projects</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </a>
+
+              <button
+                onClick={onOpenResume}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-semibold text-sm transition-all duration-300 shadow-[0_0_15px_rgba(0,242,254,0.15)]"
+              >
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span>Download Resume</span>
+              </button>
 
               <a
                 href="#contact"

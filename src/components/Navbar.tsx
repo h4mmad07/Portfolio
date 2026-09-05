@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sparkles, Lock } from 'lucide-react';
+import { Menu, X, Sparkles, Lock, FileText } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onOpenResume: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
   const { data, setIsAdminOpen, isAuthenticated } = usePortfolio();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -100,6 +104,15 @@ export const Navbar: React.FC = () => {
         {/* Action Button & Stealth Admin */}
         <div className="hidden md:flex items-center gap-3">
           <button
+            onClick={onOpenResume}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-light hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:text-cyan-300 text-xs font-semibold transition-all shadow-sm"
+            title="Preview & Download ATS Resume"
+          >
+            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Resume</span>
+          </button>
+
+          <button
             onClick={() => setIsAdminOpen(true)}
             className={`p-2 rounded-xl border transition-all ${
               isAuthenticated
@@ -124,6 +137,13 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Hamburger */}
         <div className="md:hidden flex items-center gap-2">
+          <button
+            onClick={onOpenResume}
+            className="p-2 rounded-xl bg-surface-light border border-white/10 text-cyan-400"
+            title="Resume"
+          >
+            <FileText className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setIsAdminOpen(true)}
             className="p-2 rounded-xl bg-surface-light border border-white/10 text-slate-400"
@@ -161,10 +181,22 @@ export const Navbar: React.FC = () => {
                   {link.name}
                 </a>
               ))}
+              
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenResume();
+                }}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold text-sm"
+              >
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span>View & Download Resume</span>
+              </button>
+
               <a
                 href="#contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className="mt-2 text-center py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm"
+                className="mt-1 text-center py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm"
               >
                 Let's Connect
               </a>

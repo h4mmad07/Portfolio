@@ -1,8 +1,12 @@
 import React from 'react';
-import { ArrowUp, Lock } from 'lucide-react';
+import { ArrowUp, Lock, FileText } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenResume?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenResume }) => {
   const { data, setIsAdminOpen, isAuthenticated } = usePortfolio();
 
   const scrollToTop = () => {
@@ -32,11 +36,20 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
             <a href="#about" className="hover:text-cyan-400 transition-colors">About</a>
             <a href="#services" className="hover:text-cyan-400 transition-colors">Services</a>
             <a href="#projects" className="hover:text-cyan-400 transition-colors">Projects</a>
             <a href="#skills" className="hover:text-cyan-400 transition-colors">Skills</a>
+            {onOpenResume && (
+              <button
+                onClick={onOpenResume}
+                className="hover:text-cyan-300 transition-colors flex items-center gap-1 text-cyan-400 font-medium"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Resume PDF
+              </button>
+            )}
             <a href="#contact" className="hover:text-cyan-400 transition-colors">Contact</a>
           </div>
 

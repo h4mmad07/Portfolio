@@ -39,3 +39,76 @@
     font-family: 'JetBrains Mono', monospace;
   }
 }
+
+/* Printable Resume Clean Rules */
+@media print {
+  @page {
+    margin: 12mm 15mm;
+    size: auto;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide everything except the print resume container */
+  header, 
+  main, 
+  footer, 
+  canvas, 
+  .print-hidden,
+  .custom-cursor,
+  .particle-bg {
+    display: none !important;
+  }
+
+  .resume-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .resume-modal-container {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .resume-modal-header {
+    display: none !important;
+  }
+
+  #ats-resume-document {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .resume-section,
+  .resume-item {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
