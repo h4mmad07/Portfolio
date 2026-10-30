@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Lock, 
@@ -16,10 +16,12 @@ import {
   AtSign
 } from 'lucide-react';
 import { usePortfolio } from '../../context/PortfolioContext';
+import { supabase } from '../../lib/supabase';
 
 export const AdminLogin: React.FC = () => {
-  const { login, isConfigured, isAuthenticated, resetPassword, updatePassword } = usePortfolio();
+  const { login, isConfigured, isAuthenticated } = usePortfolio();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,13 +29,21 @@ export const AdminLogin: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Handle magic link code from URL (?code=xxx)
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const type = searchParams.get('type');
+    if (code && type === 'recovery') {
+      setResetStep('new-password');
+    }
+  }, [searchParams]);
+
   const [email, setEmail] = useState('mh9456605@gmail.com');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [resetStep, setResetStep] = useState<'email' | 'code' | 'new-password' | null>(null);
+  const [resetStep, setResetStep] = useState<'email' | 'new-password' | null>(null);
   const [resetEmail, setResetEmail] = useState('');
-  const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -69,15 +79,19 @@ export const AdminLogin: React.FC = () => {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const result = await resetPassword(resetEmail);
-      if (result.success) {
-        setResetStep('code');
-        setErrorMsg('');
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/admin/login`
+      });
+      if (error) {
+        setErrorMsg(error.message);
       } else {
-        setErrorMsg(result.error || 'Failed to send reset code.');
+        setErrorMsg('');
+        setTimeout(() => {
+          setErrorMsg('Reset link sent to your email. Click the link to set a new password.');
+        }, 1000);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to send reset code.');
+      setErrorMsg(err.message || 'Failed to send reset link.');
     } finally {
       setIsLoading(false);
     }
@@ -95,13 +109,15 @@ export const AdminLogin: React.FC = () => {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const result = await updatePassword(newPassword);
-      if (result.success) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
         setResetStep(null);
         setErrorMsg('');
-        setTimeout(() => navigate('/admin/login'), 1500);
-      } else {
-        setErrorMsg(result.error || 'Failed to update password.');
+        setTimeout(() => {
+          navigate('/admin/login');
+        }, 1500);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to update password.');
@@ -159,7 +175,7 @@ export const AdminLogin: React.FC = () => {
           </div>
         )}
 
-        {/* Reset Password Flow */}
+        {/* Reset Password: Email Step */}
         {resetStep === 'email' && (
           <form onSubmit={(e) => { e.preventDefault(); handleResetSendCode(); }} className="space-y-4">
             <div>
@@ -185,55 +201,19 @@ export const AdminLogin: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                  <span>Sending Code...</span>
+                  <span>Sending Link...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Send Reset Code</span>
+                  <span>Send Reset Link</span>
                 </>
               )}
             </button>
           </form>
         )}
 
-        {resetStep === 'code' && (
-          <div className="space-y-4">
-            <div className="text-xs font-mono text-slate-300 mb-2">
-              Enter the reset code sent to <span className="text-cyan-400">{resetEmail}</span>
-            </div>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={resetCode}
-                onChange={(e) => setResetCode(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
-                placeholder="123456"
-              />
-              <AtSign className="w-4 h-4 text-muted absolute left-3.5 top-3" />
-            </div>
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setResetStep('email')}
-                className="text-xs font-mono text-slate-400 hover:text-white"
-              >
-                ← Back
-              </button>
-              <button
-                type="button"
-                onClick={() => setResetStep('new-password')}
-                disabled={resetCode.length !== 6}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all disabled:opacity-60"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        )}
-
+        {/* Reset Password: New Password Step */}
         {resetStep === 'new-password' && (
           <form onSubmit={(e) => { e.preventDefault(); handleResetUpdatePassword(); }} className="space-y-4">
             <div>
