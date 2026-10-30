@@ -85,6 +85,10 @@ interface PortfolioContextType {
   exportJSON: () => string;
   importJSON: (jsonStr: string) => boolean;
 
+  // Auth / Password Reset
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+
   // GitHub Sync
   syncFromGitHub: (repoFullName: string, autoPublish?: boolean) => Promise<{ success: boolean; message: string }>;
   syncMultipleRepos: (repoFullNames: string[], autoPublish?: boolean) => Promise<{ success: number; failed: number; messages: string[] }>;
@@ -449,6 +453,45 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     sessionStorage.removeItem(AUTH_KEY);
   };
 
+  // Forgot Password / Reset Password via Supabase Auth
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (!isConfigured) {
+      return { success: false, error: 'Supabase not configured.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/admin/reset-password`
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to send reset code.' };
+    }
+  };
+
+  const updatePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!isConfigured) {
+      return { success: false, error: 'Supabase not configured.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update password.' };
+    }
+  };
+
   // ----------------------------------------------------------------------------
   // DATA MUTATORS (Cloud-First with Optimistic UI & Local Cache)
   // ----------------------------------------------------------------------------
@@ -514,6 +557,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             display_order: s.displayOrder ?? 0,
             is_visible: s.isVisible ?? true
           });
+        }
+
+        // Delete services from Supabase that are no longer in the local array
+        const existingIds = new Set(services.map(s => s.id));
+        const { data: dbServices } = await supabase.from('portfolio_services').select('id');
+        for (const s of (dbServices || [])) {
+          if (!existingIds.has(s.id)) {
+            await supabase.from('portfolio_services').delete().eq('id', s.id);
+          }
         }
       } catch (err) {
         console.error('Failed to sync services with Supabase:', err);
@@ -1122,6 +1174,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addEducation,
         updateEducation,
         deleteEducation,
+        resetPassword,
+        updatePassword,
         updateSettings,
         toggleSectionVisibility,
         inquiries,

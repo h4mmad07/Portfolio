@@ -11,12 +11,14 @@ import {
   Loader2, 
   ArrowLeft,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Send,
+  AtSign
 } from 'lucide-react';
 import { usePortfolio } from '../../context/PortfolioContext';
 
 export const AdminLogin: React.FC = () => {
-  const { login, isConfigured, isAuthenticated } = usePortfolio();
+  const { login, isConfigured, isAuthenticated, resetPassword, updatePassword } = usePortfolio();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +31,11 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resetStep, setResetStep] = useState<'email' | 'code' | 'new-password' | null>(null);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +56,55 @@ export const AdminLogin: React.FC = () => {
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Login error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetSendCode = async () => {
+    if (!resetEmail.trim()) {
+      setErrorMsg('Please enter your admin email.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      const result = await resetPassword(resetEmail);
+      if (result.success) {
+        setResetStep('code');
+        setErrorMsg('');
+      } else {
+        setErrorMsg(result.error || 'Failed to send reset code.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to send reset code.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetUpdatePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('New password and confirmation do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setErrorMsg('New password must be at least 6 characters.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      const result = await updatePassword(newPassword);
+      if (result.success) {
+        setResetStep(null);
+        setErrorMsg('');
+        setTimeout(() => navigate('/admin/login'), 1500);
+      } else {
+        setErrorMsg(result.error || 'Failed to update password.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update password.');
     } finally {
       setIsLoading(false);
     }
@@ -103,58 +159,198 @@ export const AdminLogin: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
-              ADMIN EMAIL
-            </label>
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
-                placeholder="mh9456605@gmail.com"
-              />
-              <Mail className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+        {/* Reset Password Flow */}
+        {resetStep === 'email' && (
+          <form onSubmit={(e) => { e.preventDefault(); handleResetSendCode(); }} className="space-y-4">
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                ADMIN EMAIL
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                  placeholder="mh9456605@gmail.com"
+                />
+                <Mail className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              </div>
             </div>
-          </div>
+            <button
+              type="submit"
+              className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(0,242,254,0.3)] transition-all disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <span>Sending Code...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>Send Reset Code</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
 
-          <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
-              PASSWORD / PASSCODE
-            </label>
+        {resetStep === 'code' && (
+          <div className="space-y-4">
+            <div className="text-xs font-mono text-slate-300 mb-2">
+              Enter the reset code sent to <span className="text-cyan-400">{resetEmail}</span>
+            </div>
             <div className="relative">
               <input
-                type="password"
+                type="text"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password or passcode"
+                maxLength={6}
+                value={resetCode}
+                onChange={(e) => setResetCode(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                placeholder="123456"
               />
-              <KeyRound className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              <AtSign className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setResetStep('email')}
+                className="text-xs font-mono text-slate-400 hover:text-white"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setResetStep('new-password')}
+                disabled={resetCode.length !== 6}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all disabled:opacity-60"
+              >
+                Continue
+              </button>
             </div>
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(0,242,254,0.3)] transition-all duration-300 disabled:opacity-60"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                <span>Authenticating...</span>
-              </>
-            ) : (
-              <>
-                <span>Access Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
+        {resetStep === 'new-password' && (
+          <form onSubmit={(e) => { e.preventDefault(); handleResetUpdatePassword(); }} className="space-y-4">
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                NEW PASSWORD
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                  placeholder="••••••••"
+                />
+                <KeyRound className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                CONFIRM PASSWORD
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                  placeholder="••••••••"
+                />
+                <KeyRound className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(0,242,254,0.3)] transition-all disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Update Password</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* Normal Login Form */}
+        {resetStep === null && (
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                ADMIN EMAIL
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                  placeholder="mh9456605@gmail.com"
+                />
+                <Mail className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                PASSWORD / PASSCODE
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password or passcode"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none transition-colors"
+                />
+                <KeyRound className="w-4 h-4 text-muted absolute left-3.5 top-3" />
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <button
+                  type="button"
+                  onClick={() => setResetStep('email')}
+                  className="text-xs font-mono text-cyan-400 hover:text-cyan-300"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(0,242,254,0.3)] transition-all duration-300 disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Access Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        )}
 
         <div className="mt-6 pt-5 border-t border-white/10 text-center text-[11px] font-mono text-muted">
           Private portfolio management system — strictly authorized owner access only.

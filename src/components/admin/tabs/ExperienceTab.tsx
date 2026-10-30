@@ -148,7 +148,11 @@ export const ExperienceTab: React.FC = () => {
           </div>
           {!isAddingExp && (
             <button
-              onClick={() => setIsAddingExp(true)}
+              onClick={() => {
+                setIsAddingExp(true);
+                setEditingExpId(null);
+                setEditingEduId(null);
+              }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -322,7 +326,11 @@ export const ExperienceTab: React.FC = () => {
           </div>
           {!isAddingEdu && (
             <button
-              onClick={() => setIsAddingEdu(true)}
+              onClick={() => {
+                setIsAddingEdu(true);
+                setEditingExpId(null);
+                setEditingEduId(null);
+              }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs shadow transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
