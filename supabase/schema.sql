@@ -7,6 +7,21 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- ==============================================================================
+-- PASSWORD RESET OTP TABLE
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS password_reset_otps (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL,
+  otp_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '10 minutes'),
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE password_reset_otps ENABLE ROW LEVEL SECURITY;
+
+-- SERVICE ROLE CAN ACCESS OTP TABLE (handled by edge functions)
 -- ------------------------------------------------------------------------------
 -- 1. PORTFOLIO PROFILE
 -- ------------------------------------------------------------------------------
@@ -242,6 +257,12 @@ create table if not exists public.portfolio_experience (
   location text default '',
   responsibilities text[] default '{}',
   tags text[] default '{}',
+  employment_type text default 'Full-time',
+  company_logo text default '',
+  company_website text default '',
+  start_date date,
+  end_date date,
+  currently_working boolean default false,
   display_order integer default 0,
   is_visible boolean default true,
   created_at timestamptz default now()
@@ -276,6 +297,12 @@ create table if not exists public.portfolio_education (
   location text default '',
   badge text default 'In Progress',
   description text default '',
+  qualification text default '',
+  board_university text default '',
+  grade_cgpa text default '',
+  total_marks_scale text default '',
+  achievements text default '',
+  institution_website text default '',
   display_order integer default 0,
   is_visible boolean default true,
   created_at timestamptz default now()

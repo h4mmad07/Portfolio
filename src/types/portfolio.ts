@@ -18,18 +18,6 @@ export interface Project {
   createdAt?: string;
 }
 
-export interface Education {
-  id: string;
-  degree: string;
-  institution: string;
-  period: string;
-  location: string;
-  description?: string;
-  badge: string;
-  displayOrder?: number;
-  isVisible?: boolean;
-}
-
 export interface Experience {
   id: string;
   role: string;
@@ -38,6 +26,30 @@ export interface Experience {
   location: string;
   responsibilities: string[];
   tags: string[];
+  employmentType?: 'Full-time' | 'Part-time' | 'Internship' | 'Freelance' | 'Volunteer';
+  companyLogo?: string;
+  companyWebsite?: string;
+  startDate?: string;
+  endDate?: string;
+  currentlyWorking?: boolean;
+  displayOrder?: number;
+  isVisible?: boolean;
+}
+
+export interface Education {
+  id: string;
+  degree: string;
+  institution: string;
+  period: string;
+  location: string;
+  description?: string;
+  badge: string;
+  qualification?: string;
+  boardUniversity?: string;
+  gradeCgpa?: string;
+  totalMarksScale?: string;
+  achievements?: string;
+  institutionWebsite?: string;
   displayOrder?: number;
   isVisible?: boolean;
 }
