@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUp, Lock, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 
 interface FooterProps {
@@ -7,7 +8,8 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenResume }) => {
-  const { data, setIsAdminOpen, isAuthenticated } = usePortfolio();
+  const { data, isAuthenticated } = usePortfolio();
+  const navigate = useNavigate();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -20,12 +22,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenResume }) => {
           
           <div className="flex items-center gap-3">
             <div 
-              onDoubleClick={() => setIsAdminOpen(true)}
+              onDoubleClick={() => navigate('/admin')}
               className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 p-[1.5px] cursor-pointer"
-              title="Double-click for Admin"
+              title="Double-click for Admin (/admin)"
             >
               <div className="w-full h-full bg-surface rounded-[6px] flex items-center justify-center font-mono font-bold text-xs text-cyan-300">
-                MH
+                {data.settings?.logoText || 'MH'}
               </div>
             </div>
             <span className="font-bold text-sm text-white font-display">
@@ -41,6 +43,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenResume }) => {
             <a href="#services" className="hover:text-cyan-400 transition-colors">Services</a>
             <a href="#projects" className="hover:text-cyan-400 transition-colors">Projects</a>
             <a href="#skills" className="hover:text-cyan-400 transition-colors">Skills</a>
+            <a href="#certifications" className="hover:text-cyan-400 transition-colors">Certifications</a>
+            <a href="#experience" className="hover:text-cyan-400 transition-colors">Journey</a>
             {onOpenResume && (
               <button
                 onClick={onOpenResume}
@@ -55,26 +59,27 @@ export const Footer: React.FC<FooterProps> = ({ onOpenResume }) => {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsAdminOpen(true)}
+              onClick={() => navigate('/admin')}
               className={`p-2.5 rounded-xl border transition-all text-xs font-mono flex items-center gap-1.5 ${
                 isAuthenticated 
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                  : 'bg-surface-light border-white/10 text-muted hover:text-white'
+                  : 'bg-surface-light border-white/10 text-slate-400 hover:text-white'
               }`}
-              title="Admin Portal (Ctrl+Shift+A)"
+              title={isAuthenticated ? 'Admin Dashboard (/admin)' : 'Admin Login (/admin)'}
             >
               <Lock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{isAuthenticated ? 'Admin Active' : 'Admin'}</span>
+              <span>Admin</span>
             </button>
 
             <button
               onClick={scrollToTop}
-              className="p-3 rounded-xl bg-surface-light border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition-all shadow-sm"
-              aria-label="Back to Top"
+              className="p-2.5 rounded-xl bg-surface-light border border-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Back to Top"
             >
               <ArrowUp className="w-4 h-4" />
             </button>
           </div>
+
         </div>
       </div>
     </footer>

@@ -7,6 +7,11 @@ import { usePortfolio } from '../context/PortfolioContext';
 export const Experience: React.FC = () => {
   const { data } = usePortfolio();
 
+  if (!data.settings?.sectionsVisibility?.experience) return null;
+
+  const visibleExperience = (data.experience || []).filter((e) => e.isVisible !== false);
+  if (visibleExperience.length === 0) return null;
+
   return (
     <section id="experience" className="relative py-24 bg-surface/30 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,7 +23,7 @@ export const Experience: React.FC = () => {
         />
 
         <div className="max-w-4xl mx-auto space-y-8">
-          {data.experience.map((exp, idx) => (
+          {visibleExperience.map((exp, idx) => (
             <motion.div
               key={exp.id || idx}
               initial={{ opacity: 0, y: 30 }}

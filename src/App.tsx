@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { PortfolioProvider } from './context/PortfolioContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { PortfolioProvider, usePortfolio } from './context/PortfolioContext';
 import { CustomCursor } from './components/ui/CustomCursor';
 import { ParticleBackground } from './components/ui/ParticleBackground';
 import { Navbar } from './components/Navbar';
@@ -8,14 +9,36 @@ import { About } from './components/About';
 import { WhatIDo } from './components/WhatIDo';
 import { TechStack } from './components/TechStack';
 import { Projects } from './components/Projects';
+import { Certifications } from './components/Certifications';
 import { Experience } from './components/Experience';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
-import { AdminAuthModal } from './components/admin/AdminAuthModal';
-import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ResumeModal } from './components/ResumeModal';
+import { AdminLayout } from './components/admin/AdminLayout';
+import { AdminLogin } from './components/admin/AdminLogin';
 
-export const AppContent: React.FC = () => {
+// Router wrapper that consumes PortfolioContext (must be outside the provider)
+const AppRouter: React.FC = () => {
+  const { isAuthenticated } = usePortfolio();
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<PublicPortfolio />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated ? <AdminLayout /> : <Navigate to="/admin/login" replace />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export const PublicPortfolio: React.FC = () => {
   const [isResumeOpen, setIsResumeOpen] = useState(false);
 
   return (
@@ -30,6 +53,7 @@ export const AppContent: React.FC = () => {
         <WhatIDo />
         <TechStack />
         <Projects />
+        <Certifications />
         <Experience />
         <Contact />
       </main>
@@ -38,10 +62,6 @@ export const AppContent: React.FC = () => {
 
       {/* Resume ATS & PDF Export Modal */}
       <ResumeModal isOpen={isResumeOpen} onClose={() => setIsResumeOpen(false)} />
-
-      {/* Admin Protected Modals */}
-      <AdminAuthModal />
-      <AdminDashboard />
     </div>
   );
 };
@@ -49,7 +69,7 @@ export const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <PortfolioProvider>
-      <AppContent />
+      <AppRouter />
     </PortfolioProvider>
   );
 };

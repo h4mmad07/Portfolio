@@ -30,6 +30,8 @@ export const About: React.FC = () => {
     return () => clearInterval(interval);
   }, [data.personal.timeZone]);
 
+  if (!data.settings?.sectionsVisibility?.about) return null;
+
   return (
     <section id="about" className="relative py-24 bg-surface/50 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

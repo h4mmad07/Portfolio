@@ -8,23 +8,40 @@ import {
   Brain, 
   Monitor, 
   Database, 
-  Code 
+  Code,
+  Activity,
+  Image as ImageIcon,
+  Play,
+  Film
 } from 'lucide-react';
 import { SectionHeader } from './ui/SectionHeader';
-import { Project } from '../data/portfolioData';
+import { Project } from '../types/portfolio';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ProjectModal } from './ProjectModal';
+
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+
+const isVideoUrl = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  return VIDEO_EXTENSIONS.some((ext) => lower.includes(ext));
+};
 
 export const Projects: React.FC = () => {
   const { data } = usePortfolio();
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
 
-  const categories = ['All', 'Game Dev', 'Desktop App', 'AI & ML', 'Database System', 'Software Arch'];
+  if (!data.settings?.sectionsVisibility?.projects) return null;
+
+  // Filter only published projects
+  const publishedProjects = (data.projects || []).filter((p) => p.isPublished !== false);
+
+  // Extract unique categories dynamically
+  const categories = ['All', ...Array.from(new Set(publishedProjects.map((p) => p.category)))];
 
   const filteredProjects = selectedFilter === 'All'
-    ? data.projects
-    : data.projects.filter(p => p.category === selectedFilter);
+    ? publishedProjects
+    : publishedProjects.filter((p) => p.category === selectedFilter);
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -43,9 +60,10 @@ export const Projects: React.FC = () => {
         <SectionHeader
           badge="FEATURED WORK"
           title="Engineered Projects & Systems"
-          subtitle="Explore selected applications, 3D games, machine learning pipelines, and desktop architectures."
+          subtitle="Explore selected applications, 3D interactive games, machine learning pipelines, and desktop architectures."
         />
 
+        {/* Category Pills */}
         <div className="flex flex-wrap justify-center gap-2 mb-12">
           {categories.map((cat) => (
             <button
@@ -62,6 +80,7 @@ export const Projects: React.FC = () => {
           ))}
         </div>
 
+        {/* Project Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredProjects.map((project, idx) => (
             <motion.div
@@ -70,20 +89,69 @@ export const Projects: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="group relative rounded-3xl bg-surface-light/50 border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl overflow-hidden flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 shadow-xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)]"
+              onClick={() => setActiveModalProject(project)}
+              className="group relative rounded-3xl bg-surface-light/50 border border-white/10 hover:border-cyan-500/50 backdrop-blur-xl overflow-hidden flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 shadow-xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] cursor-pointer"
             >
-              <div className={`h-28 sm:h-32 bg-gradient-to-br ${project.gradient} relative p-6 flex flex-col justify-between`}>
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-xs font-mono text-white">
-                    {getCategoryIcon(project.category)}
-                    <span>{project.category}</span>
+              {/* Card Image Banner */}
+              {project.thumbnailUrl ? (
+                <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-950">
+                  {isVideoUrl(project.thumbnailUrl) ? (
+                    <div className="relative w-full h-full overflow-hidden">
+                      <video
+                        src={project.thumbnailUrl}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        muted
+                        playsInline
+                        preload="none"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/20 transition-all">
+                        <Play className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={project.thumbnailUrl}
+                      alt={project.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/30" />
+                  
+                  <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-mono text-white">
+                      {getCategoryIcon(project.category)}
+                      <span>{project.category}</span>
+                    </div>
+                    {project.status && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-emerald-400/30 text-emerald-400 text-[10px] font-mono">
+                        <Activity className="w-2.5 h-2.5" />
+                        {project.status}
+                      </span>
+                    )}
                   </div>
-                  <span className="font-mono text-xs font-bold text-white/80">
-                    {project.year}
-                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className={`h-28 sm:h-32 bg-gradient-to-br ${project.gradient} relative p-6 flex flex-col justify-between`}>
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-xs font-mono text-white">
+                      {getCategoryIcon(project.category)}
+                      <span>{project.category}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {project.status && (
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-black/40 border border-emerald-500/30 text-emerald-400">
+                          {project.status}
+                        </span>
+                      )}
+                      <span className="font-mono text-xs font-bold text-white/80">
+                        {project.year}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
+              {/* Card Body */}
               <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-white font-display mb-3 group-hover:text-cyan-300 transition-colors flex items-center justify-between">
@@ -97,43 +165,42 @@ export const Projects: React.FC = () => {
                 </div>
 
                 <div>
+                  {/* Technology Tags */}
                   <div className="flex flex-wrap gap-1.5 mb-6">
-                    {project.technologies.slice(0, 4).map((tech, tIdx) => (
+                    {project.technologies.slice(0, 4).map((tech, i) => (
                       <span
-                        key={tIdx}
-                        className="px-2.5 py-1 rounded-lg bg-surface border border-white/5 text-[11px] font-mono text-slate-300"
+                        key={i}
+                        className="px-2.5 py-1 rounded-lg bg-surface border border-white/5 text-xs font-mono text-slate-300 group-hover:border-white/10 transition-colors"
                       >
                         {tech}
                       </span>
                     ))}
                     {project.technologies.length > 4 && (
-                      <span className="px-2 py-1 rounded-lg bg-surface text-[10px] font-mono text-muted">
+                      <span className="px-2 py-1 rounded-lg bg-surface text-xs font-mono text-cyan-400">
                         +{project.technologies.length - 4}
                       </span>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                    <button
-                      onClick={() => setActiveModalProject(project)}
-                      className="text-xs font-bold font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" /> Details & Specs
-                    </button>
+                  {/* Card Action Footers */}
+                  <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-muted">
+                    <span className="text-cyan-400 group-hover:underline flex items-center gap-1">
+                      Deep-dive architecture →
+                    </span>
 
-                    {project.githubUrl ? (
-                      <a
-                        href={project.githubUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-xl bg-surface border border-white/10 text-slate-300 hover:text-white hover:border-white/30 transition-all"
-                        title="GitHub Repository"
-                      >
-                        <Github className="w-4 h-4" />
-                      </a>
-                    ) : (
-                      <span className="text-[11px] font-mono text-muted">Unity Build</span>
-                    )}
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                      {project.githubUrl && (
+                        <a
+                          href={project.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-white transition-colors"
+                          title="GitHub Repository"
+                        >
+                          <Github className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -141,12 +208,13 @@ export const Projects: React.FC = () => {
           ))}
         </div>
 
-        <ProjectModal
-          project={activeModalProject}
-          onClose={() => setActiveModalProject(null)}
-        />
-
       </div>
+
+      {/* Project Details Modal */}
+      <ProjectModal
+        project={activeModalProject}
+        onClose={() => setActiveModalProject(null)}
+      />
     </section>
   );
 };

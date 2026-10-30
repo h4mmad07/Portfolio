@@ -13,6 +13,11 @@ import { usePortfolio } from '../context/PortfolioContext';
 export const WhatIDo: React.FC = () => {
   const { data } = usePortfolio();
 
+  if (!data.settings?.sectionsVisibility?.services) return null;
+
+  const visibleServices = (data.services || []).filter((s) => s.isVisible !== false);
+  if (visibleServices.length === 0) return null;
+
   const getIcon = (id: string) => {
     switch (id) {
       case 'software-eng': return <Code2 className="w-7 h-7 text-cyan-400" />;
@@ -35,7 +40,7 @@ export const WhatIDo: React.FC = () => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.services.map((service, idx) => (
+          {visibleServices.map((service, idx) => (
             <motion.div
               key={service.id}
               initial={{ opacity: 0, y: 30 }}

@@ -27,6 +27,8 @@ export const TechStack: React.FC = () => {
   const { data } = usePortfolio();
   const [activeTab, setActiveTab] = useState(0);
 
+  if (!data.settings?.sectionsVisibility?.skills) return null;
+
   const getSkillIcon = (iconName: string) => {
     switch (iconName) {
       case 'Code2': return <Code2 className="w-5 h-5 text-cyan-400" />;

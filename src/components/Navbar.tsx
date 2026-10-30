@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sparkles, Lock, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 
 interface NavbarProps {
@@ -8,7 +9,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
-  const { data, setIsAdminOpen, isAuthenticated } = usePortfolio();
+  const { data, isAuthenticated } = usePortfolio();
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
@@ -18,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
     { name: 'Services', href: '#services' },
     { name: 'Projects', href: '#projects' },
     { name: 'Skills', href: '#skills' },
+    { name: 'Certifications', href: '#certifications' },
     { name: 'Journey', href: '#experience' },
     { name: 'Contact', href: '#contact' },
   ];
@@ -26,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 40);
 
-      const sections = ['hero', 'about', 'services', 'projects', 'skills', 'experience', 'contact'];
+      const sections = ['hero', 'about', 'services', 'projects', 'skills', 'certifications', 'experience', 'contact'];
       const current = sections.find((section) => {
         const el = document.getElementById(section);
         if (el) {
@@ -54,13 +57,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
         
         {/* Brand Logo (Double click to open Admin Panel) */}
         <div
-          onDoubleClick={() => setIsAdminOpen(true)}
+          onDoubleClick={() => navigate('/admin')}
           className="group flex items-center gap-3 cursor-pointer select-none"
-          title="Double-click to open Admin Portal"
+          title="Double-click to open Admin Portal (/admin)"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-[1.5px] shadow-[0_0_15px_rgba(0,242,254,0.3)] group-hover:shadow-[0_0_25px_rgba(0,242,254,0.6)] transition-all">
             <div className="w-full h-full bg-surface rounded-[10px] flex items-center justify-center font-mono font-bold text-sm text-cyan-300">
-              MH
+              {data.settings?.logoText || 'MH'}
             </div>
           </div>
           <div className="flex flex-col">
@@ -75,14 +78,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 px-4 py-1.5 rounded-full bg-surface-light/60 border border-white/10 backdrop-blur-md shadow-inner">
+        <nav className="hidden lg:flex items-center gap-1 px-4 py-1.5 rounded-full bg-surface-light/60 border border-white/10 backdrop-blur-md shadow-inner">
           {navLinks.map((link) => {
             const isActive = activeSection === link.href.substring(1);
             return (
               <a
                 key={link.name}
                 href={link.href}
-                className={`relative px-4 py-1.5 text-xs font-medium transition-all rounded-full ${
+                className={`relative px-3.5 py-1.5 text-xs font-medium transition-all rounded-full ${
                   isActive
                     ? 'text-cyan-300 font-semibold'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -113,13 +116,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
           </button>
 
           <button
-            onClick={() => setIsAdminOpen(true)}
+            onClick={() => navigate('/admin')}
             className={`p-2 rounded-xl border transition-all ${
               isAuthenticated
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 : 'bg-surface-light border-white/10 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40'
             }`}
-            title={isAuthenticated ? 'Admin Panel (Active)' : 'Admin Lock (Ctrl+Shift+A)'}
+            title={isAuthenticated ? 'Admin Dashboard (/admin)' : 'Admin Login (/admin)'}
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -136,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
         </div>
 
         {/* Mobile Hamburger */}
-        <div className="md:hidden flex items-center gap-2">
+        <div className="lg:hidden flex items-center gap-2">
           <button
             onClick={onOpenResume}
             className="p-2 rounded-xl bg-surface-light border border-white/10 text-cyan-400"
@@ -145,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
             <FileText className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setIsAdminOpen(true)}
+            onClick={() => navigate('/admin')}
             className="p-2 rounded-xl bg-surface-light border border-white/10 text-slate-400"
             title="Admin"
           >
@@ -168,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-surface/95 backdrop-blur-xl border-b border-white/10 px-6 py-6"
+            className="lg:hidden bg-surface/95 backdrop-blur-xl border-b border-white/10 px-6 py-6"
           >
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
