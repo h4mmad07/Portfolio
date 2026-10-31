@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ArrowRight, 
@@ -8,8 +8,9 @@ import {
   Sparkles
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
-import { Hero3DCanvas } from './3d/Hero3DCanvas';
 import { getPortfolioStats } from '../utils/portfolioStats';
+
+const Hero3DCanvas = lazy(() => import('./3d/Hero3DCanvas').then((module) => ({ default: module.Hero3DCanvas })));
 
 interface HeroProps {
   onOpenResume: () => void;
@@ -137,7 +138,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
             className="lg:col-span-5 h-[420px] sm:h-[480px] lg:h-[520px] w-full relative flex items-center justify-center"
           >
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-500/15 via-transparent to-purple-500/15 border border-white/10 backdrop-blur-sm overflow-hidden shadow-2xl">
-              <Hero3DCanvas />
+              <Suspense fallback={<div className="w-full h-full" aria-hidden="true" />}>
+                <Hero3DCanvas />
+              </Suspense>
             </div>
           </motion.div>
 

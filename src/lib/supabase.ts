@@ -125,24 +125,15 @@ export async function sendContactInquiry(inquiry: {
   subject?: string;
   message: string;
 }): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured()) {
-    // Store in local storage for demo if supabase not connected
-    try {
-      const existing = JSON.parse(localStorage.getItem('portfolio_local_messages') || '[]');
-      existing.unshift({ ...inquiry, id: `msg-${Date.now()}`, created_at: new Date().toISOString(), is_read: false });
-      localStorage.setItem('portfolio_local_messages', JSON.stringify(existing));
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: 'Failed to save local message.' };
-    }
+  try {
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inquiry),
+    });
+    const result = await response.json();
+    return response.ok ? { success: true } : { success: false, error: result.error || 'Could not send your message.' };
+  } catch {
+    return { success: false, error: 'Could not reach the contact service. Please try again later.' };
   }
-
-  const { error } = await supabase
-    .from('portfolio_contact_messages')
-    .insert([inquiry]);
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-  return { success: true };
 }

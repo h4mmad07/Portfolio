@@ -2,42 +2,58 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const githubWebhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req: any, res: any) {
   // Only accept POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (Number(req.headers['content-length'] || 0) > 10 * 1024 * 1024) {
+    return res.status(413).json({ error: 'Payload too large' });
+  }
 
   // Check configuration
-  if (!supabaseUrl || !supabaseKey || !githubWebhookSecret) {
+  if (!supabaseUrl || !supabaseKey || !githubWebhookSecret || githubWebhookSecret.length < 32) {
     return res.status(500).json({ error: 'Server not configured. Missing env vars.' });
   }
 
   // Initialize Supabase client
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Get raw body for signature verification
-  const rawBody = req.body;
-  const signature = req.headers['x-hub-signature-256'] || req.headers['X-Hub-Signature-256'];
+  const signature = req.headers['x-hub-signature-256'];
 
   if (!signature) {
     return res.status(401).json({ error: 'Missing GitHub signature' });
   }
 
-  // Verify HMAC signature
-  const hmac = crypto.createHmac('sha256', githubWebhookSecret);
-  const digest = 'sha256=' + hmac.update(JSON.stringify(rawBody)).digest('hex');
-
-  if (digest !== signature) {
+  const chunks: Buffer[] = [];
+  let payloadBytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    payloadBytes += buffer.length;
+    if (payloadBytes > 10 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Payload too large' });
+    }
+    chunks.push(buffer);
+  }
+  const rawPayload = Buffer.concat(chunks);
+  const received = typeof signature === 'string' ? signature.match(/^sha256=([a-f0-9]{64})$/i)?.[1] : undefined;
+  if (!received) return res.status(401).json({ error: 'Invalid signature' });
+  const expected = crypto.createHmac('sha256', githubWebhookSecret).update(rawPayload).digest();
+  const receivedBytes = Buffer.from(received, 'hex');
+  if (receivedBytes.length !== expected.length || !crypto.timingSafeEqual(expected, receivedBytes)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  // Parse GitHub event
-  const event = req.headers['x-github-event'] || req.headers['X-GitHub-Event'];
-  const { repository, action, sender } = rawBody;
+  let rawBody: any;
+  try { rawBody = JSON.parse(rawPayload.toString('utf8')); }
+  catch { return res.status(400).json({ error: 'Invalid JSON payload' }); }
+  const event = req.headers['x-github-event'];
+  const { repository, action } = rawBody;
 
   // Only handle repository events from repository owner
   if (!repository || !repository.full_name) {
@@ -51,7 +67,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // Only handle push events or repository creation
-  if (event !== 'push' && event !== 'create' && event !== 'repository') {
+  if (event !== 'push' && !(event === 'create' && rawBody.ref_type === 'repository') && !(event === 'repository' && action === 'created')) {
     return res.status(200).json({ error: `Event ${event} not handled` });
   }
 

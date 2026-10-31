@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { usePortfolio } from '../../../context/PortfolioContext';
-import { KeyRound, Download, Upload, RefreshCw, Copy, Check, ShieldCheck, AlertTriangle, Github, Plus, X, Eye, List } from 'lucide-react';
+import { Download, Upload, RefreshCw, Copy, Check, ShieldCheck, AlertTriangle, Github, Plus, X, Eye, List } from 'lucide-react';
 
 export const SecurityTab: React.FC = () => {
   const { 
-    changePasscode, 
     exportJSON, 
     importJSON, 
     generateTypeScriptCode, 
@@ -13,10 +12,6 @@ export const SecurityTab: React.FC = () => {
     syncMultipleRepos
   } = usePortfolio();
 
-  const [currentPass, setCurrentPass] = useState('');
-  const [newPass, setNewPass] = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [importStr, setImportStr] = useState('');
@@ -33,30 +28,6 @@ export const SecurityTab: React.FC = () => {
   const [isFetchingRepos, setIsFetchingRepos] = useState(false);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [autoPublishOnSync, setAutoPublishOnSync] = useState(true);
-
-  const handleChangePass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPassMsg(null);
-
-    if (newPass !== confirmPass) {
-      setPassMsg({ type: 'error', text: 'New passcode and confirmation do not match.' });
-      return;
-    }
-    if (newPass.length < 4) {
-      setPassMsg({ type: 'error', text: 'New passcode must be at least 4 characters long.' });
-      return;
-    }
-
-    try {
-      await changePasscode(currentPass, newPass);
-      setPassMsg({ type: 'success', text: 'Master passcode successfully updated & encrypted!' });
-      setCurrentPass('');
-      setNewPass('');
-      setConfirmPass('');
-    } catch (err: any) {
-      setPassMsg({ type: 'error', text: err.message || 'Failed to update passcode.' });
-    }
-  };
 
   const handleCopyTS = () => {
     const code = generateTypeScriptCode();
@@ -237,64 +208,9 @@ export const SecurityTab: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Change Passcode */}
-      <div className="p-5 rounded-2xl bg-surface border border-white/10 space-y-4">
-        <div className="flex items-center gap-2 text-cyan-400">
-          <KeyRound className="w-5 h-5" />
-          <h4 className="font-bold text-white text-base font-display">Change Admin Master Passcode</h4>
-        </div>
-        <p className="text-xs text-muted font-mono">
-          Update the secret passcode used to access this panel.
-        </p>
-
-        <form onSubmit={handleChangePass} className="space-y-3 max-w-md">
-          <div>
-            <label className="block text-[11px] font-mono text-slate-300 mb-1">CURRENT PASSCODE</label>
-            <input
-              type="password"
-              required
-              value={currentPass}
-              onChange={(e) => setCurrentPass(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-mono text-slate-300 mb-1">NEW PASSCODE</label>
-              <input
-                type="password"
-                required
-                value={newPass}
-                onChange={(e) => setNewPass(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-mono text-slate-300 mb-1">CONFIRM NEW</label>
-              <input
-                type="password"
-                required
-                value={confirmPass}
-                onChange={(e) => setConfirmPass(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {passMsg && (
-            <div className={`p-2.5 rounded-xl text-xs font-mono ${passMsg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
-              {passMsg.text}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono shadow-md"
-          >
-            Update Passcode
-          </button>
-        </form>
+      <div className="p-5 rounded-2xl bg-surface border border-white/10 space-y-2">
+        <h4 className="font-bold text-white text-base font-display">Account security</h4>
+        <p className="text-xs text-muted font-mono">Admin access uses the verified owner account. Change its password through the secure recovery flow on the sign-in screen.</p>
       </div>
 
       {/* Code Export & Backup */}

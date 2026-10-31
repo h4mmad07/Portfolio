@@ -19,7 +19,7 @@ import {
   uploadPortfolioFile,
   sendContactInquiry 
 } from '../lib/supabase';
-import { verifyPasscode, updatePasscode } from '../utils/security';
+const ADMIN_EMAIL = 'mh9456605@gmail.com';
 
 interface PortfolioContextType {
   data: PortfolioSchema;
@@ -34,7 +34,6 @@ interface PortfolioContextType {
   adminUserEmail: string | null;
   login: (passwordOrPasscode: string, email?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  changePasscode: (oldPass: string, newPass: string) => Promise<boolean>;
   generateTypeScriptCode: () => string;
   
   // Storage & Media
@@ -85,17 +84,12 @@ interface PortfolioContextType {
   exportJSON: () => string;
   importJSON: (jsonStr: string) => boolean;
 
-  // Auth / Password Reset
-  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
-  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
-
   // GitHub Sync
   syncFromGitHub: (repoFullName: string, autoPublish?: boolean) => Promise<{ success: boolean; message: string }>;
   syncMultipleRepos: (repoFullNames: string[], autoPublish?: boolean) => Promise<{ success: number; failed: number; messages: string[] }>;
 }
 
 const STORAGE_KEY = 'portfolio_custom_data_v2';
-const AUTH_KEY = 'portfolio_admin_auth_v2';
 
 const PortfolioContext = createContext<PortfolioContextType | null>(null);
 
@@ -128,9 +122,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [isLoading, setIsLoading] = useState(true);
   const [isCloudSynced, setIsCloudSynced] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem(AUTH_KEY) === 'authenticated_active_session';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminUserEmail, setAdminUserEmail] = useState<string | null>(null);
   const [inquiries, setInquiries] = useState<ContactMessage[]>([]);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -152,24 +144,25 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setIsAuthenticated(true);
-        setAdminUserEmail(session.user.email || 'Admin');
-        sessionStorage.setItem(AUTH_KEY, 'authenticated_active_session');
+        const isOwner = session.user.email?.toLowerCase() === ADMIN_EMAIL;
+        setIsAuthenticated(isOwner);
+        setAdminUserEmail(isOwner ? session.user.email || ADMIN_EMAIL : null);
+        if (!isOwner) void supabase.auth.signOut();
+      } else {
+        setIsAuthenticated(false);
+        setAdminUserEmail(null);
       }
     });
 
     const { data: authSubscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setIsAuthenticated(true);
-        setAdminUserEmail(session.user.email || 'Admin');
-        sessionStorage.setItem(AUTH_KEY, 'authenticated_active_session');
+        const isOwner = session.user.email?.toLowerCase() === ADMIN_EMAIL;
+        setIsAuthenticated(isOwner);
+        setAdminUserEmail(isOwner ? session.user.email || ADMIN_EMAIL : null);
+        if (!isOwner) void supabase.auth.signOut();
       } else {
-        // Only clear if not in fallback local auth mode
-        if (sessionStorage.getItem(AUTH_KEY) !== 'local_authenticated') {
-          setIsAuthenticated(false);
-          setAdminUserEmail(null);
-          sessionStorage.removeItem(AUTH_KEY);
-        }
+        setIsAuthenticated(false);
+        setAdminUserEmail(null);
       }
     });
 
@@ -414,36 +407,17 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // AUTHENTICATION
   // ----------------------------------------------------------------------------
   const login = async (passwordOrPasscode: string, email?: string): Promise<{ success: boolean; error?: string }> => {
-    // 1. If Supabase is configured and an email is provided or default owner email
-    if (isConfigured && (email || passwordOrPasscode.length > 5)) {
-      const targetEmail = email || 'mh9456605@gmail.com';
-      try {
-        const { data: authData, error } = await supabase.auth.signInWithPassword({
-          email: targetEmail,
-          password: passwordOrPasscode,
-        });
-
-        if (!error && authData.user) {
-          setIsAuthenticated(true);
-          setAdminUserEmail(authData.user.email || targetEmail);
-          sessionStorage.setItem(AUTH_KEY, 'authenticated_active_session');
-          return { success: true };
-        }
-      } catch (err) {
-        // Fall through to check local passcode
-      }
+    if (!isConfigured) return { success: false, error: 'Admin sign-in is unavailable until Supabase is configured.' };
+    const targetEmail = (email || '').trim().toLowerCase();
+    if (targetEmail !== ADMIN_EMAIL) return { success: false, error: 'Invalid admin credentials.' };
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password: passwordOrPasscode });
+    if (error || authData.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
+      if (authData.user) await supabase.auth.signOut();
+      return { success: false, error: 'Invalid admin credentials.' };
     }
-
-    // 2. Master Passcode verification (supports offline & standalone setup)
-    const isPasscodeValid = await verifyPasscode(passwordOrPasscode);
-    if (isPasscodeValid) {
-      setIsAuthenticated(true);
-      setAdminUserEmail('Portfolio Owner');
-      sessionStorage.setItem(AUTH_KEY, 'local_authenticated');
-      return { success: true };
-    }
-
-    return { success: false, error: 'Invalid admin credentials or passcode.' };
+    setIsAuthenticated(true);
+    setAdminUserEmail(ADMIN_EMAIL);
+    return { success: true };
   };
 
   const logout = async () => {
@@ -456,46 +430,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     setIsAuthenticated(false);
     setAdminUserEmail(null);
-    sessionStorage.removeItem(AUTH_KEY);
-  };
-
-  // Forgot Password / Reset Password via Supabase Auth
-  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    if (!isConfigured) {
-      return { success: false, error: 'Supabase not configured.' };
-    }
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/admin/reset-password`
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to send reset code.' };
-    }
-  };
-
-  const updatePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    if (!isConfigured) {
-      return { success: false, error: 'Supabase not configured.' };
-    }
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to update password.' };
-    }
   };
 
   // ----------------------------------------------------------------------------
@@ -1134,13 +1068,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return false;
   };
 
-  const changePasscode = async (oldPass: string, newPass: string): Promise<boolean> => {
-    const isValid = await verifyPasscode(oldPass);
-    if (!isValid) throw new Error('Current passcode is incorrect.');
-    await updatePasscode(newPass);
-    return true;
-  };
-
   const generateTypeScriptCode = (): string => {
     return `export const initialPortfolioData = ${JSON.stringify(data, null, 2)};\n`;
   };
@@ -1171,7 +1098,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         adminUserEmail,
         login,
         logout,
-        changePasscode,
         generateTypeScriptCode,
         uploadFile,
         updatePersonal,
@@ -1192,8 +1118,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addEducation,
         updateEducation,
         deleteEducation,
-        resetPassword,
-        updatePassword,
         updateSettings,
         toggleSectionVisibility,
         inquiries,

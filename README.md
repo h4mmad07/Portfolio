@@ -46,7 +46,7 @@ The site is backed by **Supabase** (PostgreSQL + Row Level Security + Object Sto
 - Print mode with `@media print` rules.
 
 ### 🔐 4. Private Admin Dashboard (`/admin`)
-- Secure login via Supabase Auth or master passcode.
+- Owner-only login via Supabase Auth; browser passcodes are not supported.
 - Full CRUD for: Profile, Projects, Certifications, Skills, Services, Experience, Education, Settings.
 - Section visibility toggles (show/hide sections on public site).
 - Contact inquiries inbox (read/reply/delete).
@@ -111,7 +111,7 @@ muhammad-hammad-portfolio/
 │   ├── data/                # Initial portfolio data
 │   ├── lib/                 # supabase.ts (Supabase client + file upload)
 │   ├── types/               # portfolio.ts (TypeScript master schema)
-│   ├── utils/               # security.ts (passcode verification)
+│   ├── utils/               # Shared frontend utilities
 │   ├── App.tsx              # Application root + routing
 │   ├── index.css            # Base styles
 │   └── main.tsx             # React DOM entrypoint
@@ -147,18 +147,26 @@ npm install
 ```
 
 ### 4. Set Environment Variables
-Create `.env` in the project root:
+Create an ignored local `.env.local` file (never commit credentials):
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
-GITHUB_WEBHOOK_SECRET=your-webhook-secret
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
+OTP_HMAC_SECRET=generate-at-least-32-random-characters
+RATE_LIMIT_HMAC_SECRET=generate-a-different-32-character-random-secret
+RESEND_API_KEY=server-only-resend-api-key
+RESEND_FROM_EMAIL=Portfolio <no-reply@your-verified-domain.example>
+GITHUB_WEBHOOK_SECRET=generate-at-least-32-random-characters
 ```
+Never use a `VITE_` prefix for server secrets. Configure server-only values in the hosting provider as well. Password recovery and contact submissions stay disabled until their required server values are set.
 
 ### 5. Run Local Development Server
 ```bash
 npm run dev
 ```
 Open `http://localhost:3000/`.
+This starts the Vite frontend only. To exercise the `/api/*` functions locally, configure `.env.local` and use the Vercel CLI with `vercel dev`.
 
 ### 6. Build for Production
 ```bash
@@ -171,7 +179,7 @@ Output goes to `dist/`.
 ## 🔐 Admin Portal
 
 1. Navigate to `http://localhost:3000/admin/login`
-2. Login with Supabase Auth credentials or master passcode
+2. Login with the designated owner’s Supabase Auth credentials
 3. Access dashboard at `/admin`
 4. Manage projects, certifications, skills, services, experience, education, settings, media, and inquiries
 
@@ -179,7 +187,7 @@ Output goes to `dist/`.
 
 ## 🔄 GitHub Auto-Sync Setup
 
-1. Add `GITHUB_WEBHOOK_SECRET` to `.env` and Vercel Environment Variables
+1. Add `GITHUB_WEBHOOK_SECRET`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as server-only Vercel Environment Variables
 2. Deploy to Vercel
 3. In GitHub repo → Settings → Webhooks → Add webhook:
    - **Payload URL:** `https://your-app.vercel.app/api/webhook/github`
@@ -193,9 +201,11 @@ Output goes to `dist/`.
 ## ☁️ Supabase Setup
 
 1. Run `supabase/schema.sql` in Supabase SQL Editor
+   - For an existing database, run `supabase/migrations/20261031_security_hardening.sql` instead to replace the permissive policies safely.
 2. Create admin user in Supabase Authentication → Users
 3. Confirm storage buckets `portfolio-media` and `portfolio-documents` exist
-4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel env vars
+4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel build variables
+5. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OTP_HMAC_SECRET`, `RATE_LIMIT_HMAC_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `GITHUB_WEBHOOK_SECRET` as server-only variables
 
 ---
 

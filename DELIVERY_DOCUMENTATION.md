@@ -24,27 +24,37 @@ This creates:
 2. Enter an email and password for the admin account.
 3. Confirm the email (or disable email confirmations in **Authentication → Settings** for testing).
 
-The Admin Dashboard at `/admin` requires an authenticated Supabase session. `AdminLogin.tsx` also supports a master passcode fallback if configured.
+The Admin Dashboard at `/admin` requires a Supabase session for the designated owner account. The browser-only master passcode has been removed. For an existing Supabase project, run `supabase/migrations/20261031_security_hardening.sql` in the SQL editor; code changes alone do not update a live project. For a new project, use the updated `supabase/schema.sql`.
 
 ---
 
 ## 2. Environment Variables
 
-Create a `.env` file in the project root (copy from `.env.example`):
+Create an ignored `.env.local` file in the project root (copy from `.env.example`):
 
 ```
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
+OTP_HMAC_SECRET=generate-at-least-32-random-characters
+RATE_LIMIT_HMAC_SECRET=generate-a-different-32-character-random-secret
+RESEND_API_KEY=server-only-resend-api-key
+RESEND_FROM_EMAIL=Portfolio <no-reply@your-verified-domain.example>
+GITHUB_WEBHOOK_SECRET=generate-at-least-32-random-characters
 ```
+
+Keep server-only values out of every `VITE_` variable and source-control history. Configure them in the deployment provider. The updated contact and recovery APIs require the listed service credentials and email provider configuration.
 
 Retrieve these values from **Supabase Dashboard → Project Settings → API**.
 
 ### Vercel deployment
 In your Vercel project settings:
 1. Go to **Settings → Environment Variables**.
-2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-3. Set environment to **Production**, **Preview**, and **Development**.
-4. Redeploy.
+2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as build variables.
+3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OTP_HMAC_SECRET`, `RATE_LIMIT_HMAC_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `GITHUB_WEBHOOK_SECRET` as server-only variables.
+4. Set environment to **Production**, **Preview**, and **Development**.
+5. Redeploy.
 
 `vercel.json` is already configured with SPA rewrite rules for `/` and `/admin`.
 
@@ -58,7 +68,7 @@ In your Vercel project settings:
 - Admin dashboard: `http://localhost:3000/admin`
 
 ### Login
-Use the Supabase Auth email/password created in step 1.2, or the master passcode fallback defined in `src/components/admin/AdminLogin.tsx`.
+Use the designated owner’s Supabase Auth email/password created in step 1.2. Other authenticated accounts are not authorized by the updated policies.
 
 ### Tabs available
 | Tab | Purpose |
@@ -73,7 +83,7 @@ Use the Supabase Auth email/password created in step 1.2, or the master passcode
 | Skills | Skills & categories management |
 | Services | What I Do services management |
 | Experience | Work history management |
-| Security | Auth and passcode settings |
+| Security | Backup, recovery, and account security guidance |
 
 ---
 

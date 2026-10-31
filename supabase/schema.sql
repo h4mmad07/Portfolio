@@ -16,8 +16,91 @@ CREATE TABLE IF NOT EXISTS password_reset_otps (
   otp_hash TEXT NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '10 minutes'),
   used BOOLEAN DEFAULT FALSE,
+  attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0 AND attempt_count <= 5),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE password_reset_otps ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS password_reset_otps_email_created_idx ON password_reset_otps (email, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS password_reset_grants (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE password_reset_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS password_reset_request_events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS password_reset_request_events_email_created_idx
+  ON password_reset_request_events (email, created_at DESC);
+ALTER TABLE password_reset_request_events ENABLE ROW LEVEL SECURITY;
+create or replace function public.allow_password_reset_request(p_email text)
+returns boolean language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
+declare recent_count integer; latest_request timestamptz;
+begin
+  perform pg_advisory_xact_lock(hashtext(p_email));
+  select count(*), max(created_at) into recent_count, latest_request
+    from public.password_reset_request_events where email = p_email and created_at >= now() - interval '1 hour';
+  if recent_count >= 5 or latest_request >= now() - interval '60 seconds' then return false; end if;
+  delete from public.password_reset_request_events where created_at < now() - interval '24 hours';
+  insert into public.password_reset_request_events (email) values (p_email);
+  return true;
+end;
+$$;
+revoke all on function public.allow_password_reset_request(text) from public, anon, authenticated;
+grant execute on function public.allow_password_reset_request(text) to service_role;
+create or replace function public.record_password_reset_attempt(p_id uuid)
+returns integer language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
+declare next_attempt integer;
+begin
+  update public.password_reset_otps
+    set attempt_count = least(attempt_count + 1, 5), used = (attempt_count + 1 >= 5)
+    where id = p_id and used = false
+    returning attempt_count into next_attempt;
+  return coalesce(next_attempt, 5);
+end;
+$$;
+revoke all on function public.record_password_reset_attempt(uuid) from public, anon, authenticated;
+grant execute on function public.record_password_reset_attempt(uuid) to service_role;
+
+CREATE TABLE IF NOT EXISTS contact_submission_events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  ip_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS contact_submission_events_ip_created_idx ON contact_submission_events (ip_hash, created_at DESC);
+ALTER TABLE contact_submission_events ENABLE ROW LEVEL SECURITY;
+
+create or replace function public.allow_contact_submission(p_ip_hash text)
+returns boolean
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare recent_count integer;
+begin
+  perform pg_advisory_xact_lock(hashtext(p_ip_hash));
+  select count(*) into recent_count from public.contact_submission_events
+    where ip_hash = p_ip_hash and created_at >= now() - interval '1 hour';
+  if recent_count >= 5 then return false; end if;
+  delete from public.contact_submission_events where created_at < now() - interval '24 hours';
+  insert into public.contact_submission_events (ip_hash) values (p_ip_hash);
+  return true;
+end;
+$$;
+revoke all on function public.allow_contact_submission(text) from public, anon, authenticated;
+grant execute on function public.allow_contact_submission(text) to service_role;
 
 ALTER TABLE password_reset_otps ENABLE ROW LEVEL SECURITY;
 
@@ -422,29 +505,71 @@ alter table public.portfolio_site_settings enable row level security;
 
 -- PUBLIC READ POLICIES (Anyone can view published content)
 create policy "Public can read profile" on public.portfolio_profile for select using (true);
-create policy "Public can read visible services" on public.portfolio_services for select using (is_visible = true or auth.role() = 'authenticated');
-create policy "Public can read published projects" on public.portfolio_projects for select using (is_published = true or auth.role() = 'authenticated');
+create policy "Public can read visible services" on public.portfolio_services for select using (is_visible = true);
+create policy "Public can read published projects" on public.portfolio_projects for select using (is_published = true);
 create policy "Public can read skills" on public.portfolio_skills for select using (true);
 create policy "Public can read marquee skills" on public.portfolio_marquee_skills for select using (true);
-create policy "Public can read visible experience" on public.portfolio_experience for select using (is_visible = true or auth.role() = 'authenticated');
-create policy "Public can read visible education" on public.portfolio_education for select using (is_visible = true or auth.role() = 'authenticated');
-create policy "Public can read visible certifications" on public.portfolio_certifications for select using (is_visible = true or auth.role() = 'authenticated');
+create policy "Public can read visible experience" on public.portfolio_experience for select using (is_visible = true);
+create policy "Public can read visible education" on public.portfolio_education for select using (is_visible = true);
+create policy "Public can read visible certifications" on public.portfolio_certifications for select using (is_visible = true);
 create policy "Public can read site settings" on public.portfolio_site_settings for select using (true);
 
--- PUBLIC SUBMIT FOR CONTACT MESSAGES
-create policy "Public can submit contact messages" on public.portfolio_contact_messages for insert with check (true);
+-- Contact submissions go through the rate-limited server API, not direct anon inserts.
+drop policy if exists "Public can submit contact messages" on public.portfolio_contact_messages;
 
 -- AUTHENTICATED ADMIN FULL ACCESS (Owner only)
-create policy "Admin full access profile" on public.portfolio_profile for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access services" on public.portfolio_services for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access projects" on public.portfolio_projects for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access skills" on public.portfolio_skills for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access marquee" on public.portfolio_marquee_skills for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access experience" on public.portfolio_experience for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access education" on public.portfolio_education for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access certifications" on public.portfolio_certifications for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access contact messages" on public.portfolio_contact_messages for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Admin full access site settings" on public.portfolio_site_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "Admin full access profile" on public.portfolio_profile;
+drop policy if exists "Admin full access services" on public.portfolio_services;
+drop policy if exists "Admin full access projects" on public.portfolio_projects;
+drop policy if exists "Admin full access skills" on public.portfolio_skills;
+drop policy if exists "Admin full access marquee" on public.portfolio_marquee_skills;
+drop policy if exists "Admin full access experience" on public.portfolio_experience;
+drop policy if exists "Admin full access education" on public.portfolio_education;
+drop policy if exists "Admin full access certifications" on public.portfolio_certifications;
+drop policy if exists "Admin full access contact messages" on public.portfolio_contact_messages;
+drop policy if exists "Admin full access site settings" on public.portfolio_site_settings;
+drop policy if exists "Owner full access profile" on public.portfolio_profile;
+drop policy if exists "Owner full access services" on public.portfolio_services;
+drop policy if exists "Owner full access projects" on public.portfolio_projects;
+drop policy if exists "Owner full access skills" on public.portfolio_skills;
+drop policy if exists "Owner full access marquee" on public.portfolio_marquee_skills;
+drop policy if exists "Owner full access experience" on public.portfolio_experience;
+drop policy if exists "Owner full access education" on public.portfolio_education;
+drop policy if exists "Owner full access certifications" on public.portfolio_certifications;
+drop policy if exists "Owner full access contact messages" on public.portfolio_contact_messages;
+drop policy if exists "Owner full access site settings" on public.portfolio_site_settings;
+-- Only the verified portfolio owner may administer the content. Email is taken
+-- from the signed Supabase JWT; never trust a client-supplied role or email.
+create policy "Owner full access profile" on public.portfolio_profile for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access services" on public.portfolio_services for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access projects" on public.portfolio_projects for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access skills" on public.portfolio_skills for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access marquee" on public.portfolio_marquee_skills for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access experience" on public.portfolio_experience for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access education" on public.portfolio_education for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access certifications" on public.portfolio_certifications for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access contact messages" on public.portfolio_contact_messages for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner full access site settings" on public.portfolio_site_settings for all
+  using (auth.jwt() ->> 'email' = 'mh9456605@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
 
 -- ------------------------------------------------------------------------------
 -- 11. SUPABASE STORAGE BUCKETS SETUP
@@ -459,7 +584,13 @@ values ('portfolio-documents', 'portfolio-documents', true)
 on conflict (id) do nothing;
 
 -- Storage Policies: Public can view assets, Authenticated user can upload/modify/delete
+drop policy if exists "Admin can insert portfolio media" on storage.objects;
+drop policy if exists "Admin can update portfolio media" on storage.objects;
+drop policy if exists "Admin can delete portfolio media" on storage.objects;
+drop policy if exists "Owner can insert portfolio media" on storage.objects;
+drop policy if exists "Owner can update portfolio media" on storage.objects;
+drop policy if exists "Owner can delete portfolio media" on storage.objects;
 create policy "Public can view portfolio media" on storage.objects for select using (bucket_id in ('portfolio-media', 'portfolio-documents'));
-create policy "Admin can insert portfolio media" on storage.objects for insert with check (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.role() = 'authenticated');
-create policy "Admin can update portfolio media" on storage.objects for update using (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.role() = 'authenticated');
-create policy "Admin can delete portfolio media" on storage.objects for delete using (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.role() = 'authenticated');
+create policy "Owner can insert portfolio media" on storage.objects for insert with check (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner can update portfolio media" on storage.objects for update using (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
+create policy "Owner can delete portfolio media" on storage.objects for delete using (bucket_id in ('portfolio-media', 'portfolio-documents') and auth.jwt() ->> 'email' = 'mh9456605@gmail.com');
