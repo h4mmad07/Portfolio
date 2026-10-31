@@ -41,7 +41,7 @@ export const ExperienceTab: React.FC = () => {
     location: 'Multan, Pakistan',
     responsibilitiesText: '',
     tagsText: '',
-    employmentType: 'Full-time',
+    employmentType: 'Full-time' as NonNullable<Experience['employmentType']>,
     companyLogo: '',
     companyWebsite: '',
     startDate: '',
@@ -228,9 +228,10 @@ export const ExperienceTab: React.FC = () => {
           {!isAddingExp && (
             <button
               onClick={() => {
+                setIsAddingEdu(false);
+                setEditingEduId(null);
                 setIsAddingExp(true);
                 setEditingExpId(null);
-                setEditingEduId(null);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow transition-all"
             >
@@ -306,7 +307,7 @@ export const ExperienceTab: React.FC = () => {
                 <label className="block text-[11px] font-mono text-slate-300 mb-1">EMPLOYMENT TYPE</label>
                 <select
                   value={expForm.employmentType}
-                  onChange={(e) => setExpForm({ ...expForm, employmentType: e.target.value })}
+                  onChange={(e) => setExpForm({ ...expForm, employmentType: e.target.value as NonNullable<Experience['employmentType']> })}
                   className="w-full px-3 py-2 rounded-xl bg-surface-light border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
                 >
                   <option value="Full-time">Full-time</option>
@@ -511,19 +512,23 @@ export const ExperienceTab: React.FC = () => {
             </h4>
             <p className="text-xs text-muted font-mono">University degree and academic curriculum credentials.</p>
           </div>
-          {!isAddingEdu && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingEduId(null);
-                setIsAddingEdu(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs shadow transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Degree</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (isAddingEdu) {
+                setIsAddingEdu(false);
+                return;
+              }
+              setIsAddingExp(false);
+              setEditingExpId(null);
+              setEditingEduId(null);
+              setIsAddingEdu(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs shadow transition-all"
+          >
+            {isAddingEdu ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            <span>{isAddingEdu ? 'Cancel' : 'Add Degree'}</span>
+          </button>
         </div>
 
         {(isAddingEdu || editingEduId) && (
