@@ -32,7 +32,7 @@ export const ExperienceTab: React.FC = () => {
     startDate: '',
     endDate: '',
     currentlyWorking: false,
-    displayOrder: data.experience.length + 1,
+    displayOrder: (data?.experience?.length || 0) + 1,
     isVisible: true
   });
 
@@ -49,7 +49,7 @@ export const ExperienceTab: React.FC = () => {
     totalMarksScale: '',
     achievements: '',
     institutionWebsite: '',
-    displayOrder: data.education.length + 1,
+    displayOrder: (data?.education?.length || 0) + 1,
     isVisible: true
   });
 
@@ -76,7 +76,7 @@ export const ExperienceTab: React.FC = () => {
     });
 
     setIsAddingExp(false);
-    setExpForm({ role: '', company: '', period: '', location: '', responsibilitiesText: '', tagsText: '', employmentType: 'Full-time', companyLogo: '', companyWebsite: '', startDate: '', endDate: '', currentlyWorking: false, displayOrder: data.experience.length + 1, isVisible: true });
+    setExpForm({ role: '', company: '', period: '', location: '', responsibilitiesText: '', tagsText: '', employmentType: 'Full-time', companyLogo: '', companyWebsite: '', startDate: '', endDate: '', currentlyWorking: false, displayOrder: (data?.experience?.length || 0) + 1, isVisible: true });
   };
 
   const handleSaveEdu = async (e: React.FormEvent) => {
@@ -99,7 +99,7 @@ export const ExperienceTab: React.FC = () => {
     });
 
     setIsAddingEdu(false);
-    setEduForm({ degree: '', institution: '', period: '', location: '', badge: '', description: '', qualification: '', boardUniversity: '', gradeCgpa: '', totalMarksScale: '', achievements: '', institutionWebsite: '', displayOrder: data.education.length + 1, isVisible: true });
+    setEduForm({ degree: '', institution: '', period: '', location: '', badge: '', description: '', qualification: '', boardUniversity: '', gradeCgpa: '', totalMarksScale: '', achievements: '', institutionWebsite: '', displayOrder: (data?.education?.length || 0) + 1, isVisible: true });
   };
 
   const handleEditExp = (exp: Experience) => {
@@ -118,7 +118,7 @@ export const ExperienceTab: React.FC = () => {
       startDate: exp.startDate || '',
       endDate: exp.endDate || '',
       currentlyWorking: exp.currentlyWorking || false,
-      displayOrder: exp.displayOrder || data.experience.length + 1,
+      displayOrder: exp.displayOrder || (data?.experience?.length || 0) + 1,
       isVisible: exp.isVisible ?? true
     });
   };
@@ -139,7 +139,7 @@ export const ExperienceTab: React.FC = () => {
       totalMarksScale: edu.totalMarksScale || '',
       achievements: edu.achievements || '',
       institutionWebsite: edu.institutionWebsite || '',
-      displayOrder: edu.displayOrder || data.education.length + 1,
+      displayOrder: edu.displayOrder || (data?.education?.length || 0) + 1,
       isVisible: edu.isVisible ?? true
     });
   };
@@ -169,7 +169,7 @@ export const ExperienceTab: React.FC = () => {
     });
 
     setEditingExpId(null);
-    setExpForm({ role: '', company: '', period: '', location: '', responsibilitiesText: '', tagsText: '', employmentType: 'Full-time', companyLogo: '', companyWebsite: '', startDate: '', endDate: '', currentlyWorking: false, displayOrder: data.experience.length + 1, isVisible: true });
+    setExpForm({ role: '', company: '', period: '', location: '', responsibilitiesText: '', tagsText: '', employmentType: 'Full-time', companyLogo: '', companyWebsite: '', startDate: '', endDate: '', currentlyWorking: false, displayOrder: (data?.experience?.length || 0) + 1, isVisible: true });
   };
 
   const handleUpdateEdu = async (e: React.FormEvent) => {
@@ -195,7 +195,7 @@ export const ExperienceTab: React.FC = () => {
     });
 
     setEditingEduId(null);
-    setEduForm({ degree: '', institution: '', period: '', location: '', badge: '', description: '', qualification: '', boardUniversity: '', gradeCgpa: '', totalMarksScale: '', achievements: '', institutionWebsite: '', displayOrder: data.education.length + 1, isVisible: true });
+    setEduForm({ degree: '', institution: '', period: '', location: '', badge: '', description: '', qualification: '', boardUniversity: '', gradeCgpa: '', totalMarksScale: '', achievements: '', institutionWebsite: '', displayOrder: (data?.education?.length || 0) + 1, isVisible: true });
   };
 
   return (
