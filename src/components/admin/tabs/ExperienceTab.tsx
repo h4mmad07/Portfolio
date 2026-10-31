@@ -513,10 +513,10 @@ export const ExperienceTab: React.FC = () => {
           </div>
           {!isAddingEdu && (
             <button
+              type="button"
               onClick={() => {
-                setIsAddingEdu(true);
-                setEditingExpId(null);
                 setEditingEduId(null);
+                setIsAddingEdu(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs shadow transition-all"
             >
