@@ -295,6 +295,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             location: row.location || '',
             responsibilities: row.responsibilities || [],
             tags: row.tags || [],
+            employmentType: row.employment_type || 'Full-time',
+            companyLogo: row.company_logo || '',
+            companyWebsite: row.company_website || '',
+            startDate: row.start_date || '',
+            endDate: row.end_date || '',
+            currentlyWorking: row.currently_working ?? false,
             displayOrder: row.display_order ?? 0,
             isVisible: row.is_visible ?? true
           }));
@@ -790,6 +796,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           location: newExp.location,
           responsibilities: newExp.responsibilities,
           tags: newExp.tags,
+          employment_type: newExp.employmentType,
+          company_logo: newExp.companyLogo,
+          company_website: newExp.companyWebsite,
+          start_date: newExp.startDate || null,
+          end_date: newExp.endDate || null,
+          currently_working: newExp.currentlyWorking,
           display_order: (data.experience.length + 1),
           is_visible: newExp.isVisible
         }]);
@@ -814,6 +826,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (updated.location !== undefined) payload.location = updated.location;
         if (updated.responsibilities !== undefined) payload.responsibilities = updated.responsibilities;
         if (updated.tags !== undefined) payload.tags = updated.tags;
+        if (updated.employmentType !== undefined) payload.employment_type = updated.employmentType;
+        if (updated.companyLogo !== undefined) payload.company_logo = updated.companyLogo;
+        if (updated.companyWebsite !== undefined) payload.company_website = updated.companyWebsite;
+        if (updated.startDate !== undefined) payload.start_date = updated.startDate || null;
+        if (updated.endDate !== undefined) payload.end_date = updated.endDate || null;
+        if (updated.currentlyWorking !== undefined) payload.currently_working = updated.currentlyWorking;
         if (updated.isVisible !== undefined) payload.is_visible = updated.isVisible;
 
         await supabase.from('portfolio_experience').update(payload).eq('id', id);

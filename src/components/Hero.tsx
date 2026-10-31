@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Hero3DCanvas } from './3d/Hero3DCanvas';
+import { getPortfolioStats } from '../utils/portfolioStats';
 
 interface HeroProps {
   onOpenResume: () => void;
@@ -16,6 +17,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
   const { data } = usePortfolio();
+  const stats = getPortfolioStats(data);
 
   if (!data.settings?.sectionsVisibility?.hero) return null;
 
@@ -67,17 +69,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight text-white font-display leading-[1.1]">
-              Engineering{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
-                Intelligent
-              </span>{' '}
-              Software & 3D Realities.
+            <h1 className="text-4xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight font-display leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
+              {data.personal.title}
             </h1>
 
             {/* Sub-headline */}
             <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-2xl font-sans leading-relaxed">
-              {data.personal.tagline}. Undergrad at MNSUAM specializing in C++, Python, C#, Unity, and AI-driven architectures.
+              {data.personal.tagline}
             </p>
 
             {/* CTA Buttons */}
@@ -113,7 +111,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenResume }) => {
 
             {/* Metric Counters Banner */}
             <div className="mt-12 pt-8 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
-              {data.stats.map((stat, idx) => (
+              {stats.map((stat, idx) => (
                 <div key={idx} className="flex flex-col">
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl sm:text-3xl font-extrabold text-white font-display">

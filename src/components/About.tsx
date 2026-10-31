@@ -8,10 +8,13 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './ui/SectionHeader';
 import { usePortfolio } from '../context/PortfolioContext';
+import { getPortfolioStats } from '../utils/portfolioStats';
 
 export const About: React.FC = () => {
   const { data } = usePortfolio();
   const [time, setTime] = useState('');
+  const [timeZoneLabel, setTimeZoneLabel] = useState('');
+  const stats = getPortfolioStats(data);
 
   useEffect(() => {
     const updateTime = () => {
@@ -22,7 +25,14 @@ export const About: React.FC = () => {
         second: '2-digit',
         hour12: true,
       };
-      setTime(new Intl.DateTimeFormat([], options).format(new Date()));
+      const now = new Date();
+      const timeZone = data.personal.timeZone || 'Asia/Karachi';
+      setTime(new Intl.DateTimeFormat([], options).format(now));
+      setTimeZoneLabel(
+        new Intl.DateTimeFormat([], { timeZone, timeZoneName: 'short' })
+          .formatToParts(now)
+          .find((part) => part.type === 'timeZoneName')?.value || timeZone
+      );
     };
 
     updateTime();
@@ -87,15 +97,15 @@ export const About: React.FC = () => {
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface border border-white/5 text-slate-300">
                   <Clock className="w-4 h-4 text-purple-400 flex-shrink-0" />
                   <div>
-                    <span className="text-[10px] text-muted block">Local Time (PKT)</span>
-                    <span className="font-mono font-medium text-purple-300">{time || '10:00:00 PM'}</span>
+                    <span className="text-[10px] text-muted block">Local Time ({timeZoneLabel})</span>
+                    <span className="font-mono font-medium text-purple-300">{time}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {data.stats.map((stat, idx) => (
+              {stats.map((stat, idx) => (
                 <div
                   key={idx}
                   className="p-4 rounded-2xl bg-surface-light/60 border border-white/10 backdrop-blur-md"
@@ -129,9 +139,6 @@ export const About: React.FC = () => {
               </h3>
               <p className="text-slate-300 leading-relaxed text-sm sm:text-base mb-4 font-sans">
                 {data.personal.summary}
-              </p>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Whether it is building multi-threaded C++ database engines, crafting realistic 3D game physics in Unity, training predictive machine learning models, or producing creative media narratives, I bring dedication and attention to detail to every endeavor.
               </p>
             </div>
 
