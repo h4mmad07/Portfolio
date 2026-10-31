@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
 
     const { data: users, error: usersError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (usersError) throw usersError;
-    const owner = users.users.find((user) => user.email?.toLowerCase() === OWNER_EMAIL);
+    const owner = (users.users as Array<{ id: string; email?: string | null }>).find((user) => user.email?.toLowerCase() === OWNER_EMAIL);
     if (!owner) throw new Error('Owner account is not configured.');
     const { error: updateError } = await supabase.auth.admin.updateUserById(owner.id, { password: newPassword });
     if (updateError) throw updateError;
