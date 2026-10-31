@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePortfolio } from '../../../context/PortfolioContext';
 import { Plus, Trash2, Check, X, Briefcase, GraduationCap, Edit2, Save, Calendar, Globe, Building2, Award, CheckCircle2 } from 'lucide-react';
 import { Experience, Education } from '../../../types/portfolio';
@@ -18,6 +18,21 @@ export const ExperienceTab: React.FC = () => {
   const [isAddingEdu, setIsAddingEdu] = useState(false);
   const [editingExpId, setEditingExpId] = useState<string | null>(null);
   const [editingEduId, setEditingEduId] = useState<string | null>(null);
+
+  const expFormRef = useRef<HTMLFormElement>(null);
+  const eduFormRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isAddingExp && expFormRef.current) {
+      expFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isAddingExp]);
+
+  useEffect(() => {
+    if ((isAddingEdu || editingEduId) && eduFormRef.current) {
+      eduFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isAddingEdu, editingEduId]);
 
   const [expForm, setExpForm] = useState({
     role: '',
@@ -226,7 +241,7 @@ export const ExperienceTab: React.FC = () => {
         </div>
 
         {(isAddingExp || editingExpId) && (
-          <form onSubmit={editingExpId ? handleUpdateExp : handleSaveExp} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3">
+          <form ref={expFormRef} onSubmit={editingExpId ? handleUpdateExp : handleSaveExp} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3 ring-2 ring-cyan-500/30">
             <div className="flex items-center justify-between">
               <h5 className="font-bold text-white text-xs font-mono uppercase text-cyan-300">
                 {editingExpId ? 'Edit Experience Role' : 'New Experience Role'}
@@ -512,7 +527,7 @@ export const ExperienceTab: React.FC = () => {
         </div>
 
         {(isAddingEdu || editingEduId) && (
-          <form onSubmit={editingEduId ? handleUpdateEdu : handleSaveEdu} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3">
+          <form ref={eduFormRef} onSubmit={editingEduId ? handleUpdateEdu : handleSaveEdu} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3 ring-2 ring-purple-500/30">
             <div className="flex items-center justify-between">
               <h5 className="font-bold text-white text-xs font-mono uppercase text-purple-300">
                 {editingEduId ? 'Edit Degree Entry' : 'New Degree Entry'}
