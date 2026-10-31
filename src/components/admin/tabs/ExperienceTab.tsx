@@ -225,7 +225,7 @@ export const ExperienceTab: React.FC = () => {
           )}
         </div>
 
-        {isAddingExp || editingExpId && (
+        {(isAddingExp || editingExpId) && (
           <form onSubmit={editingExpId ? handleUpdateExp : handleSaveExp} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3">
             <div className="flex items-center justify-between">
               <h5 className="font-bold text-white text-xs font-mono uppercase text-cyan-300">
@@ -511,7 +511,7 @@ export const ExperienceTab: React.FC = () => {
           )}
         </div>
 
-        {isAddingEdu || editingEduId && (
+        {(isAddingEdu || editingEduId) && (
           <form onSubmit={editingEduId ? handleUpdateEdu : handleSaveEdu} className="p-5 rounded-2xl bg-surface border border-white/15 space-y-3">
             <div className="flex items-center justify-between">
               <h5 className="font-bold text-white text-xs font-mono uppercase text-purple-300">
